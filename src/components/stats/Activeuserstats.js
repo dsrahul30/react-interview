@@ -28,17 +28,26 @@ const Activeuserstats = () => {
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const colRef = collection(db, 'activeUsers');
-        const docs = await getDocs(colRef);
+
+        // Handling Timeout with Promise.race
+        let docs;
+        try {
+            docs = await Promise.race([getDocs(colRef), new Promise((resolve, reject) => {
+                setTimeout(() => reject(new Error('Request Timed Out!')), 5000)
+            })]);
+        } catch (e) {
+            docs = [];
+            console.log(e.message, "Active users data couldn't be fetched!");
+        }
         const aUsers = [];
         docs.forEach((doc) => {
             aUsers.push(doc.data())
             setActiveUsers(aUsers)
         })
-        // console.log(aUsers)
         return aUsers
     }
 
-  return (
+    return (
         <>
             <h3 className="h3-colored h3">Storage Occupied by Active Users</h3>
             <table>
@@ -50,8 +59,8 @@ const Activeuserstats = () => {
                         <th>Storage Occupied [TB]</th>
                     </tr>
                 </thead>
-                <tbody>
-                    
+
+                <tbody>          
                     {activeUsers.map((user, index) => {
                         
                         return (
@@ -62,13 +71,12 @@ const Activeuserstats = () => {
                                 <td>{user.storageOccupied}</td>
                             </tr>
                         )
-                    })}
-
-                    
+                    })} 
                 </tbody>
+
             </table>
         </>
-  )
+    )
 }
 
 export default Activeuserstats
